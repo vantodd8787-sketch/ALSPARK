@@ -67,6 +67,15 @@
     .ddaybadge.overdue, .tl-marker.overdue{ animation:none; }
   }
 
+  .const-layer{ position:absolute; inset:0; }
+  .const-item{ position:absolute; pointer-events:none; will-change:opacity; }
+  .const-line{ stroke:var(--ink-2); stroke-width:0.6; opacity:.6; }
+  .const-star{ fill:#fdfdff; filter:drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
+  .const-label{
+    margin-top:2px; font-family:var(--font-mono); font-size:11px; letter-spacing:.08em;
+    color:var(--gold); text-align:center; opacity:.75;
+  }
+
   /* ---------- level color tokens ---------- */
   .lvl-high{ --lvl:var(--amethyst); --lvl-deep:var(--amethyst-deep); --lvl-soft:rgba(180,140,255,0.16); }
   .lvl-mid{ --lvl:var(--sapphire); --lvl-deep:var(--sapphire-deep); --lvl-soft:rgba(94,200,255,0.16); }
@@ -1128,6 +1137,146 @@
     }
   }
 
+  /* ---------- seasonal constellations ---------- */
+  /* Simplified dot-to-dot star patterns (not precise RA/Dec), each in a
+     shared -15..115 local box. 카시오페이아·북두칠성·오리온자리·전갈자리 are
+     required; the rest round out all four seasons for variety. */
+  var CONSTELLATIONS = {
+    '카시오페이아': {
+      stars: [[0,45],[22,8],[46,38],[70,6],[94,34]],
+      lines: [[0,1],[1,2],[2,3],[3,4]]
+    },
+    '북두칠성': {
+      stars: [[2,32],[30,6],[36,30],[6,44],[58,18],[80,4],[98,-10]],
+      lines: [[0,1],[1,2],[2,3],[3,0],[2,4],[4,5],[5,6]]
+    },
+    '오리온자리': {
+      stars: [[10,0],[58,6],[24,34],[34,38],[44,42],[52,72],[6,68]],
+      lines: [[0,2],[1,4],[2,3],[3,4],[4,5],[2,6]]
+    },
+    '전갈자리': {
+      stars: [[0,10],[14,4],[28,15],[40,28],[50,42],[58,58],[62,74],[56,88],[44,92]],
+      lines: [[0,2],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]]
+    },
+    '백조자리': {
+      stars: [[50,5],[50,45],[50,95],[10,55],[90,35]],
+      lines: [[0,1],[1,2],[1,3],[1,4]]
+    },
+    '페가수스자리': {
+      stars: [[10,10],[90,5],[85,85],[5,90]],
+      lines: [[0,1],[1,2],[2,3],[3,0]]
+    },
+    '황소자리': {
+      stars: [[35,55],[10,25],[60,20],[0,0],[75,-10]],
+      lines: [[1,0],[0,2],[1,3],[2,4]]
+    },
+    '사자자리': {
+      stars: [[5,20],[15,5],[30,0],[38,12],[30,26],[75,15]],
+      lines: [[0,1],[1,2],[2,3],[3,4],[4,5]]
+    }
+  };
+
+  function makeBag(keys){
+    var queue = [];
+    function refill(){
+      queue = keys.slice();
+      for(var i = queue.length - 1; i > 0; i--){
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = queue[i]; queue[i] = queue[j]; queue[j] = tmp;
+      }
+    }
+    refill();
+    return {
+      next: function(){
+        if(queue.length === 0) refill();
+        return queue.pop();
+      }
+    };
+  }
+
+  function buildConstellationEl(name){
+    var data = CONSTELLATIONS[name];
+    var wrap = document.createElement('div');
+    wrap.className = 'const-item';
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '-15 -15 130 130');
+    svg.setAttribute('width', '220');
+    svg.setAttribute('height', '220');
+
+    data.lines.forEach(function(pair){
+      var a = data.stars[pair[0]], b = data.stars[pair[1]];
+      var line = document.createElementNS(svg.namespaceURI, 'line');
+      line.setAttribute('x1', a[0]); line.setAttribute('y1', a[1]);
+      line.setAttribute('x2', b[0]); line.setAttribute('y2', b[1]);
+      line.setAttribute('class', 'const-line');
+      svg.appendChild(line);
+    });
+    data.stars.forEach(function(pt){
+      var circle = document.createElementNS(svg.namespaceURI, 'circle');
+      circle.setAttribute('cx', pt[0]); circle.setAttribute('cy', pt[1]);
+      circle.setAttribute('r', 1.8);
+      circle.setAttribute('class', 'const-star');
+      svg.appendChild(circle);
+    });
+
+    wrap.appendChild(svg);
+    var label = document.createElement('div');
+    label.className = 'const-label';
+    label.textContent = name;
+    wrap.appendChild(label);
+    return wrap;
+  }
+
+  function spawnConstellation(layer, bag){
+    var wrap = buildConstellationEl(bag.next());
+    var scale = 0.55 + Math.random() * 0.75;
+    wrap.style.top = (4 + Math.random() * 74) + '%';
+    wrap.style.left = (4 + Math.random() * 74) + '%';
+    wrap.style.transform = 'scale(' + scale.toFixed(2) + ')';
+    wrap.style.opacity = '0';
+    layer.appendChild(wrap);
+
+    var peak = (0.22 + Math.random() * 0.2).toFixed(2);
+    var fadeInMs = 3500 + Math.random() * 2500;
+    var holdMs = 7000 + Math.random() * 7000;
+    var fadeOutMs = 3500 + Math.random() * 2500;
+
+    requestAnimationFrame(function(){
+      wrap.style.transition = 'opacity ' + (fadeInMs / 1000).toFixed(2) + 's ease-in-out';
+      wrap.style.opacity = peak;
+    });
+
+    setTimeout(function(){
+      wrap.style.transition = 'opacity ' + (fadeOutMs / 1000).toFixed(2) + 's ease-in-out';
+      wrap.style.opacity = '0';
+    }, fadeInMs + holdMs);
+
+    setTimeout(function(){
+      wrap.remove();
+      var gapMs = 1500 + Math.random() * 4000;
+      setTimeout(function(){ spawnConstellation(layer, bag); }, gapMs);
+    }, fadeInMs + holdMs + fadeOutMs + 200);
+  }
+
+  function initConstellations(){
+    var root = document.getElementById('cosmos');
+    if(!root) return;
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var layer = document.createElement('div');
+    layer.className = 'const-layer';
+    root.appendChild(layer);
+
+    var keys = Object.keys(CONSTELLATIONS);
+    var SLOTS = 3;
+    for(var s = 0; s < SLOTS; s++){
+      (function(delayMs){
+        setTimeout(function(){ spawnConstellation(layer, makeBag(keys)); }, delayMs);
+      })(s * 3000 + Math.random() * 2000);
+    }
+  }
+
   /* ---------- cosmos background ---------- */
   function initCosmos(){
     var root = document.getElementById('cosmos');
@@ -1188,5 +1337,6 @@
   loadLocal();
   renderAll();
   initCosmos();
+  initConstellations();
 })();
 </script>
