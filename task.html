@@ -71,10 +71,6 @@
   .const-item{ position:absolute; pointer-events:none; will-change:opacity; }
   .const-line{ stroke:var(--ink-2); stroke-width:0.6; opacity:.6; }
   .const-star{ fill:#fdfdff; filter:drop-shadow(0 0 2.5px rgba(255,255,255,0.75)); }
-  .const-label{
-    margin-top:2px; font-family:var(--font-mono); font-size:11px; letter-spacing:.08em;
-    color:var(--gold); text-align:center; opacity:.75;
-  }
 
   /* ---------- level color tokens ---------- */
   .lvl-high{ --lvl:var(--amethyst); --lvl-deep:var(--amethyst-deep); --lvl-soft:rgba(180,140,255,0.16); }
@@ -1229,10 +1225,6 @@
     });
 
     wrap.appendChild(svg);
-    var label = document.createElement('div');
-    label.className = 'const-label';
-    label.textContent = name;
-    wrap.appendChild(label);
     return wrap;
   }
 
