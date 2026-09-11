@@ -152,6 +152,7 @@
     border-radius:12px; padding:10px 16px; font-weight:700; font-size:14px; cursor:pointer;
   }
   .clear-btn:hover{ background:rgba(255,107,139,0.16); border-color:var(--danger); }
+  .clear-btn.armed{ background:var(--danger); border-color:var(--danger); color:var(--void-0); }
 
   .msg{ font-size:14px; font-weight:600; border-radius:12px; padding:10px 12px; display:none; }
   .msg.show{ display:block; }
@@ -660,13 +661,40 @@
     return (a.createdAt || 0) - (b.createdAt || 0);
   }
 
-  function clearAllTasks(){
+  /* window.confirm() is blocked inside the sandboxed artifact frame, so
+     "delete all" arms on the first click and only fires on a second
+     click within a few seconds, instead of relying on a native dialog. */
+  var clearArmed = false;
+  var clearArmTimer = null;
+
+  function armClearButton(){
+    var btn = document.getElementById('clearAllBtn');
+    clearArmed = true;
+    btn.textContent = '정말요? 한 번 더 클릭';
+    btn.classList.add('armed');
+    clearTimeout(clearArmTimer);
+    clearArmTimer = setTimeout(disarmClearButton, 4000);
+  }
+
+  function disarmClearButton(){
+    var btn = document.getElementById('clearAllBtn');
+    clearArmed = false;
+    btn.textContent = '전체 삭제';
+    btn.classList.remove('armed');
+    clearTimeout(clearArmTimer);
+  }
+
+  function handleClearClick(){
     if(tasksCache.length === 0){
       showMsg('삭제할 일정이 없어요.', 'warn');
       return;
     }
-    var ok = window.confirm('모든 일정을 삭제할까요? 이 작업은 되돌릴 수 없어요.');
-    if(!ok) return;
+    if(!clearArmed){
+      armClearButton();
+      showMsg('다시 한 번 누르면 모든 일정이 삭제돼요.', 'warn');
+      return;
+    }
+    disarmClearButton();
     tasksCache = [];
     saveLocal();
     renderAll();
@@ -1102,7 +1130,7 @@
     if(e.key === 'Enter') addItem();
   });
   document.getElementById('copyBtn').addEventListener('click', copyResults);
-  document.getElementById('clearAllBtn').addEventListener('click', clearAllTasks);
+  document.getElementById('clearAllBtn').addEventListener('click', handleClearClick);
 
   document.getElementById('calPrev').addEventListener('click', function(){
     calMonth--;
