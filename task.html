@@ -278,16 +278,16 @@
 
   .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; align-items:stretch; }
   .cal-cell{
-    position:relative; min-height:64px; border-radius:12px; font-family:inherit;
+    position:relative; aspect-ratio:1/1; min-height:64px; border-radius:12px; font-family:inherit;
     background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
-    padding:4px 3px; display:flex; flex-direction:column; align-items:stretch; gap:2px;
+    padding:6px 4px; display:flex; flex-direction:column; align-items:stretch; gap:3px;
     cursor:pointer; color:var(--ink-1);
   }
   .cal-cell:hover{ border-color:var(--sapphire); }
   .cal-cell.muted{ opacity:.32; }
   .cal-cell.today{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset, 0 0 14px -4px var(--gold); }
   .cal-cell.selected{ border-color:var(--amethyst); background:rgba(180,140,255,0.14); }
-  .cal-daynum{ align-self:center; font-family:var(--font-mono); font-size:12.5px; font-weight:600; }
+  .cal-daynum{ align-self:center; font-family:var(--font-mono); font-size:14px; font-weight:600; }
   .cal-cell.holiday .cal-daynum{ color:var(--danger); font-weight:800; }
   .cal-tasks{ display:flex; flex-direction:column; gap:1px; width:100%; min-width:0; }
   .cal-task-chip{ display:flex; align-items:center; gap:3px; min-width:0; font-size:9.5px; font-weight:700; line-height:1.25; }
@@ -867,6 +867,8 @@
         + (dayTasks.length ? ', 일정 ' + dayTasks.length + '개' : ''));
       cell.addEventListener('click', function(){
         selectedDate = this.getAttribute('data-date');
+        var deadlineInput = document.getElementById('deadlineInput');
+        if(deadlineInput) deadlineInput.value = selectedDate;
         renderCalendar();
       });
       gridEl.appendChild(cell);
