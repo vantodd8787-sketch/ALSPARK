@@ -249,6 +249,15 @@
     padding:2px 8px; border-radius:8px; letter-spacing:.02em;
   }
 
+  .mini-level{ display:flex; gap:4px; margin-top:2px; }
+  .mini-level-btn{
+    font-family:var(--font-mono); font-size:10.5px; font-weight:700; line-height:1;
+    padding:4px 8px; border-radius:7px; border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.04); color:var(--ink-3); cursor:pointer;
+  }
+  .mini-level-btn:hover{ border-color:var(--lvl); color:var(--lvl); }
+  .mini-level-btn.active{ background:var(--lvl-soft); border-color:var(--lvl); color:var(--lvl); }
+
   .del-btn{
     border:none; background:transparent; color:var(--ink-3); font-size:16px; line-height:1;
     cursor:pointer; padding:5px 7px; border-radius:8px; flex-shrink:0;
@@ -563,6 +572,14 @@
     var t = tasksCache.filter(function(x){ return x.id === id; })[0];
     if(t){ t.done = done; saveLocal(); renderAll(); }
   }
+  function changeLevel(id, newLevel){
+    var t = tasksCache.filter(function(x){ return x.id === id; })[0];
+    if(t && t.level !== newLevel){
+      t.level = newLevel;
+      saveLocal();
+      renderAll();
+    }
+  }
   function deleteTask(id){
     tasksCache = tasksCache.filter(function(x){ return x.id !== id; });
     saveLocal();
@@ -626,6 +643,22 @@
       rep.textContent = '↻ ' + t.repeatRule;
       body.appendChild(rep);
     }
+
+    var levelToggle = document.createElement('div');
+    levelToggle.className = 'mini-level';
+    levelToggle.setAttribute('role', 'group');
+    levelToggle.setAttribute('aria-label', '중요도 변경');
+    ['상','중','하'].forEach(function(lv){
+      var lvBtn = document.createElement('button');
+      lvBtn.type = 'button';
+      lvBtn.className = 'mini-level-btn lvl-' + levelClass(lv) + (lv === t.level ? ' active' : '');
+      lvBtn.textContent = lv;
+      lvBtn.setAttribute('aria-pressed', lv === t.level ? 'true' : 'false');
+      lvBtn.setAttribute('aria-label', '중요도를 ' + lv + '(으)로 변경');
+      lvBtn.addEventListener('click', function(){ changeLevel(t.id, lv); });
+      levelToggle.appendChild(lvBtn);
+    });
+    body.appendChild(levelToggle);
 
     var del = document.createElement('button');
     del.type = 'button';
