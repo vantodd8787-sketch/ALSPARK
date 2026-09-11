@@ -215,6 +215,14 @@
     clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); box-shadow:0 0 8px var(--lvl); display:inline-block;
   }
   .list{ display:flex; flex-direction:column; gap:10px; }
+  .col .list{
+    max-height:340px; overflow-y:auto; padding-right:4px;
+    scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.25) transparent;
+  }
+  .col .list::-webkit-scrollbar{ width:6px; }
+  .col .list::-webkit-scrollbar-track{ background:transparent; }
+  .col .list::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.22); border-radius:6px; }
+  .col .list::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,0.35); }
   .empty{ text-align:center; color:var(--ink-3); font-size:14px; padding:26px 10px; }
 
   .item{
