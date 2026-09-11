@@ -146,6 +146,12 @@
     border-radius:12px; padding:10px 16px; font-weight:700; font-size:14px; cursor:pointer;
   }
   .copy-btn:hover{ border-color:var(--sapphire); color:var(--sapphire); }
+  .toolbar-inline{ display:flex; gap:8px; flex-wrap:wrap; }
+  .clear-btn{
+    background:rgba(255,107,139,0.08); color:var(--danger); border:1.5px solid rgba(255,107,139,0.32);
+    border-radius:12px; padding:10px 16px; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .clear-btn:hover{ background:rgba(255,107,139,0.16); border-color:var(--danger); }
 
   .msg{ font-size:14px; font-weight:600; border-radius:12px; padding:10px 12px; display:none; }
   .msg.show{ display:block; }
@@ -270,21 +276,28 @@
   .cal-weekdays span.sun{ color:var(--danger); }
   .cal-weekdays span.sat{ color:var(--sapphire); }
 
-  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; align-items:stretch; }
   .cal-cell{
-    position:relative; aspect-ratio:1/1; border-radius:12px; font-family:inherit;
+    position:relative; min-height:64px; border-radius:12px; font-family:inherit;
     background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
-    padding:4px 2px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:3px;
+    padding:4px 3px; display:flex; flex-direction:column; align-items:stretch; gap:2px;
     cursor:pointer; color:var(--ink-1);
   }
   .cal-cell:hover{ border-color:var(--sapphire); }
   .cal-cell.muted{ opacity:.32; }
   .cal-cell.today{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset, 0 0 14px -4px var(--gold); }
   .cal-cell.selected{ border-color:var(--amethyst); background:rgba(180,140,255,0.14); }
-  .cal-daynum{ font-family:var(--font-mono); font-size:12.5px; font-weight:600; }
+  .cal-daynum{ align-self:center; font-family:var(--font-mono); font-size:12.5px; font-weight:600; }
   .cal-cell.holiday .cal-daynum{ color:var(--danger); font-weight:800; }
-  .cal-dots{ display:flex; flex-wrap:wrap; gap:2px; justify-content:center; align-items:center; max-width:100%; }
-  .cal-dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .cal-tasks{ display:flex; flex-direction:column; gap:1px; width:100%; min-width:0; }
+  .cal-task-chip{ display:flex; align-items:center; gap:3px; min-width:0; font-size:9.5px; font-weight:700; line-height:1.25; }
+  .cal-chip-dot{ width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+  .cal-chip-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .cal-chip-high{ color:var(--amethyst); }
+  .cal-chip-mid{ color:var(--sapphire); }
+  .cal-chip-low{ color:var(--emerald); }
+  .cal-chip-done{ color:var(--ink-3); }
+  .cal-chip-done .cal-chip-text{ text-decoration:line-through; }
   .cal-dot-high{ background:var(--amethyst); box-shadow:0 0 4px var(--amethyst); }
   .cal-dot-mid{ background:var(--sapphire); box-shadow:0 0 4px var(--sapphire); }
   .cal-dot-low{ background:var(--emerald); box-shadow:0 0 4px var(--emerald); }
@@ -293,9 +306,10 @@
 
   @media (max-width:520px){
     .cal-grid, .cal-weekdays{ gap:4px; }
-    .cal-cell{ border-radius:9px; padding:3px 1px; }
+    .cal-cell{ border-radius:9px; padding:3px 2px; min-height:56px; }
     .cal-daynum{ font-size:11px; }
-    .cal-dot{ width:5px; height:5px; }
+    .cal-task-chip{ font-size:8.5px; }
+    .cal-chip-dot{ width:4px; height:4px; }
   }
 
   .cal-detail{ margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
@@ -365,7 +379,10 @@
   <section class="panel timeline-panel" aria-labelledby="timeline-heading">
     <div class="panel-head">
       <h2 id="timeline-heading">마감 타임라인</h2>
-      <button class="copy-btn" id="copyBtn" type="button">결과 복사하기</button>
+      <div class="toolbar-inline">
+        <button class="copy-btn" id="copyBtn" type="button">결과 복사하기</button>
+        <button class="clear-btn" id="clearAllBtn" type="button">전체 삭제</button>
+      </div>
     </div>
     <div class="timeline" id="timeline"></div>
   </section>
@@ -632,6 +649,30 @@
     return (a.createdAt || 0) - (b.createdAt || 0);
   }
 
+  var LEVEL_ORDER = { '상':0, '중':1, '하':2 };
+  function sortByLevel(a, b){
+    var lv = LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level];
+    if(lv !== 0) return lv;
+    if(a.done !== b.done) return a.done ? 1 : -1;
+    var ta = a.time || '99:99';
+    var tb = b.time || '99:99';
+    if(ta !== tb) return ta < tb ? -1 : 1;
+    return (a.createdAt || 0) - (b.createdAt || 0);
+  }
+
+  function clearAllTasks(){
+    if(tasksCache.length === 0){
+      showMsg('삭제할 일정이 없어요.', 'warn');
+      return;
+    }
+    var ok = window.confirm('모든 일정을 삭제할까요? 이 작업은 되돌릴 수 없어요.');
+    if(!ok) return;
+    tasksCache = [];
+    saveLocal();
+    renderAll();
+    showMsg('모든 일정을 삭제했어요.', 'success');
+  }
+
   function renderColumns(){
     ['상','중','하'].forEach(function(level){
       var wrap = document.getElementById('list-' + level);
@@ -795,22 +836,30 @@
       num.textContent = cellDate.getDate();
       cell.appendChild(num);
 
-      var dayTasks = tasksCache.filter(function(t){ return t.deadline === iso; });
+      var dayTasks = tasksCache.filter(function(t){ return t.deadline === iso; }).sort(sortByLevel);
       if(dayTasks.length){
-        var dotsWrap = document.createElement('div');
-        dotsWrap.className = 'cal-dots';
-        dayTasks.slice(0,4).forEach(function(t){
+        var tasksWrap = document.createElement('div');
+        tasksWrap.className = 'cal-tasks';
+        dayTasks.slice(0,2).forEach(function(t){
+          var lvlCls = t.done ? 'done' : levelClass(t.level);
+          var chip = document.createElement('div');
+          chip.className = 'cal-task-chip cal-chip-' + lvlCls;
           var dot = document.createElement('span');
-          dot.className = 'cal-dot ' + (t.done ? 'cal-dot-done' : 'cal-dot-' + levelClass(t.level));
-          dotsWrap.appendChild(dot);
+          dot.className = 'cal-chip-dot cal-dot-' + lvlCls;
+          var txt = document.createElement('span');
+          txt.className = 'cal-chip-text';
+          txt.textContent = t.text;
+          chip.appendChild(dot);
+          chip.appendChild(txt);
+          tasksWrap.appendChild(chip);
         });
-        if(dayTasks.length > 4){
-          var more = document.createElement('span');
+        if(dayTasks.length > 2){
+          var more = document.createElement('div');
           more.className = 'cal-more';
-          more.textContent = '+' + (dayTasks.length - 4);
-          dotsWrap.appendChild(more);
+          more.textContent = '+' + (dayTasks.length - 2) + '개 더';
+          tasksWrap.appendChild(more);
         }
-        cell.appendChild(dotsWrap);
+        cell.appendChild(tasksWrap);
       }
 
       cell.setAttribute('aria-label', (cellDate.getMonth()+1) + '월 ' + cellDate.getDate() + '일'
@@ -845,7 +894,7 @@
       detail.appendChild(banner);
     }
 
-    var dayTasks = tasksCache.filter(function(t){ return t.deadline === selectedDate; }).sort(sortForColumn);
+    var dayTasks = tasksCache.filter(function(t){ return t.deadline === selectedDate; }).sort(sortByLevel);
     if(dayTasks.length === 0){
       var empty = document.createElement('div');
       empty.className = 'empty';
@@ -1051,6 +1100,7 @@
     if(e.key === 'Enter') addItem();
   });
   document.getElementById('copyBtn').addEventListener('click', copyResults);
+  document.getElementById('clearAllBtn').addEventListener('click', clearAllTasks);
 
   document.getElementById('calPrev').addEventListener('click', function(){
     calMonth--;
